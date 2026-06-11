@@ -1,0 +1,17 @@
+{
+  "name": "readme-doctor",
+  "version": "1.0.0",
+  "description": "A static GitHub README launch checker that scores README quality and generates a stronger outline.",
+  "private": false,
+  "scripts": {
+    "test": "node tests/readme-doctor.test.js"
+  },
+  "keywords": [
+    "readme",
+    "github",
+    "markdown",
+    "documentation",
+    "static-site"
+  ],
+  "license": "MIT"
+}

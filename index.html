@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Readme Doctor reviews GitHub README files, scores launch readiness, and generates a cleaner README outline."
+    />
+    <meta name="theme-color" content="#0f766e" />
+    <title>Readme Doctor - GitHub README launch checker</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="hero-copy">
+          <div class="brand-mark" aria-hidden="true">RD</div>
+          <h1 id="pageTitle">Readme Doctor</h1>
+          <p class="subtitle">
+            Turn a rough project README into a launch-ready GitHub page with a score,
+            precise checks, and a cleaner outline you can copy or download.
+          </p>
+        </div>
+
+        <aside class="score-card" aria-live="polite">
+          <span class="score-label">Launch score</span>
+          <strong id="scoreValue">0</strong>
+          <span id="scoreMood">Paste a README to begin</span>
+          <div class="score-track" aria-hidden="true">
+            <span id="scoreBar"></span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="import-strip" aria-label="Import README">
+        <div class="repo-import">
+          <label for="repoInput">Public GitHub repository</label>
+          <div class="inline-control">
+            <input
+              id="repoInput"
+              type="url"
+              placeholder="https://github.com/user/project"
+              autocomplete="off"
+            />
+            <button id="importRepoButton" type="button">Import</button>
+          </div>
+        </div>
+        <div class="file-import">
+          <label for="fileInput">Markdown file</label>
+          <input id="fileInput" type="file" accept=".md,.markdown,text/markdown,text/plain" />
+        </div>
+        <p id="statusMessage" class="status-message" role="status">Drafts save in this browser.</p>
+      </section>
+
+      <section class="workspace" aria-label="README analyzer">
+        <div class="editor-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Your README</h2>
+              <p>Paste, import, or open a local Markdown file.</p>
+            </div>
+            <button id="sampleButton" type="button" class="secondary">Load sample</button>
+          </div>
+
+          <textarea
+            id="readmeInput"
+            spellcheck="false"
+            placeholder="# My Project&#10;&#10;Paste your README here..."
+          ></textarea>
+
+          <div class="actions">
+            <button id="analyzeButton" type="button">Analyze</button>
+            <button id="copyReportButton" type="button" class="secondary">Copy report</button>
+            <button id="clearButton" type="button" class="ghost">Clear</button>
+          </div>
+        </div>
+
+        <div class="results-panel">
+          <div class="tabs" role="tablist" aria-label="Results">
+            <button class="tab active" data-tab="checks" type="button" role="tab">Checks</button>
+            <button class="tab" data-tab="rewrite" type="button" role="tab">Rewrite</button>
+            <button class="tab" data-tab="publish" type="button" role="tab">Publish</button>
+          </div>
+
+          <section id="checksTab" class="tab-panel">
+            <div class="metrics" id="metrics"></div>
+            <div class="section-list" id="sectionList"></div>
+          </section>
+
+          <section id="rewriteTab" class="tab-panel hidden">
+            <div class="rewrite-toolbar">
+              <div>
+                <h2>Launch-ready outline</h2>
+                <p>Use this as a stronger starting point for your repo.</p>
+              </div>
+              <div class="toolbar-actions">
+                <button id="copyButton" type="button" class="secondary">Copy</button>
+                <button id="downloadButton" type="button">Download</button>
+              </div>
+            </div>
+            <pre id="rewriteOutput"></pre>
+          </section>
+
+          <section id="publishTab" class="tab-panel hidden">
+            <div class="publish-list" id="publishList"></div>
+            <div class="report-card">
+              <h2>Improvement report</h2>
+              <textarea id="reportOutput" readonly></textarea>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
