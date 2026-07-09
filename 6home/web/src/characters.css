@@ -1,0 +1,75 @@
+.game-table .player-seat {
+  isolation: isolate;
+}
+
+.player-character {
+  position: absolute;
+  z-index: -1;
+  right: calc(100% - 10px);
+  bottom: -4px;
+  width: 82px;
+  height: 102px;
+  overflow: hidden;
+  border: 1px solid rgba(242, 200, 110, 0.62);
+  border-radius: 48% 48% 18px 18px;
+  background: #062925;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, #000 0, #000 82%, transparent 100%);
+}
+
+.player-character img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.team-A .player-character {
+  border-color: rgba(103, 162, 255, 0.72);
+  filter: drop-shadow(0 0 7px rgba(74, 141, 255, 0.25));
+}
+
+.team-B .player-character {
+  border-color: rgba(255, 156, 98, 0.72);
+  filter: drop-shadow(0 0 7px rgba(240, 138, 75, 0.25));
+}
+
+.game-table .pos-5 .player-character,
+.game-table .pos-6 .player-character {
+  left: calc(100% - 10px);
+  right: auto;
+}
+
+.game-table .player-seat.current .player-character {
+  border-color: var(--gold-light);
+  filter: drop-shadow(0 0 10px rgba(217, 164, 65, 0.48));
+}
+
+@media (max-width: 800px) {
+  .player-character {
+    right: calc(100% - 7px);
+    bottom: -2px;
+    width: 58px;
+    height: 76px;
+  }
+
+  .game-table .pos-5 .player-character,
+  .game-table .pos-6 .player-character {
+    left: calc(100% - 7px);
+  }
+}
+
+@media (max-width: 480px) {
+  .player-character {
+    right: calc(100% - 5px);
+    width: 48px;
+    height: 64px;
+  }
+
+  .game-table .pos-5 .player-character,
+  .game-table .pos-6 .player-character {
+    left: calc(100% - 5px);
+  }
+}
