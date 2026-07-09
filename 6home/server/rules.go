@@ -47,10 +47,10 @@ func canSubstitute(wild, target string) bool {
 		return rankValue[target] <= rankValue["3"]
 	}
 	if wild == "3" {
-		return target == "2"
+		return target == "2" || rankValue[target] <= rankValue["A"]
 	}
 	if wild == "2" {
-		return target == "A"
+		return rankValue[target] <= rankValue["A"]
 	}
 	return false
 }

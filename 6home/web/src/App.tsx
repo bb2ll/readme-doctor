@@ -184,6 +184,7 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
   const play = () => { send({type:'play', cards:selected}); if(sound)playTone('play') }
   const pass = () => { send({type:'pass'}); if(sound)playTone('pass') }
   return <main className="game-screen">
+    <div className="rotate-phone-hint" aria-hidden="true"><span>↻</span>横屏游玩，牌桌显示更完整</div>
     <header className="game-topbar"><div className="score"><span className="team-a">队伍A</span><b>VS</b><span className="team-b">队伍B</span><small>第 {room.round} 局</small></div><div className="game-room">房间 {room.code}</div><div className="tools"><button className="icon-button" title="快捷聊天" onClick={()=>setChatOpen(v=>!v)}><MessageCircle size={19}/></button><button className="icon-button" title="提示音" onClick={()=>setSound((v:boolean)=>!v)}>{sound?<Volume2 size={19}/>:<VolumeX size={19}/>}</button><button className="icon-button" title="声音与游戏设置" onClick={()=>setSettingsOpen(v=>!v)}><Settings size={19}/></button><button className="icon-button" title={room.result?'退出房间':'对局结束后可退出'} disabled={!room.result} onClick={leave}><LogOut size={19}/></button></div></header>
     {dealing ? <div className="dealing-overlay" aria-label="荷官发牌中">
       <img src="./assets/ui/dealer-dealing.webp" alt="" />

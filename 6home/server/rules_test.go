@@ -15,10 +15,10 @@ func TestEvaluateWildDown(t *testing.T) {
 		t.Fatalf("want triple 2: %#v %v", p, err)
 	}
 }
-func TestRejectWildUp(t *testing.T) {
-	_, err := evaluate([]Card{c("S3", "3"), c("SK", "K")})
-	if err == nil {
-		t.Fatal("3 must not substitute K")
+func TestThreeMatchesTwoWildcardRange(t *testing.T) {
+	p, err := evaluate([]Card{c("S3", "3"), c("SK", "K")})
+	if err != nil || p.Target != "K" {
+		t.Fatalf("3 should substitute K like 2 does: %#v %v", p, err)
 	}
 }
 func TestWildWithRealTarget(t *testing.T) {
@@ -77,5 +77,33 @@ func TestRoundResetAllowsFreeWildGroup(t *testing.T) {
 	}
 	if play.Target != "9" || play.Count != 3 {
 		t.Fatalf("want triple 9, got %#v", play)
+	}
+}
+
+func TestRoundResetAllowsTwoWithPairEight(t *testing.T) {
+	played := &Play{Seat: 1, Cards: []Card{c("H4", "4")}, Target: "4", Count: 1, Value: rankValue["4"]}
+	r := &Room{Players: map[int]*Player{}, LastPlay: played, DisplayPlay: played, LastPlayer: 1, Passed: map[int]bool{2: true, 3: true, 4: true, 5: true, 6: true}}
+	for seat := 1; seat <= 6; seat++ {
+		r.Players[seat] = &Player{Seat: seat, Team: teamFor(seat)}
+	}
+	(&Server{}).advanceAfterPass(r, 6)
+	hand := []Card{c("S2", "2"), c("H8", "8"), c("D8", "8")}
+	play, err := validatePlay(hand, []string{"S2", "H8", "D8"}, r.LastPlay)
+	if err != nil {
+		t.Fatalf("new round must allow 2 with a pair of 8: %v", err)
+	}
+	if play.Target != "8" || play.Count != 3 {
+		t.Fatalf("want triple 8, got %#v", play)
+	}
+}
+
+func TestRoundResetAllowsThreeWithPairEight(t *testing.T) {
+	hand := []Card{c("S3", "3"), c("H8", "8"), c("D8", "8")}
+	play, err := validatePlay(hand, []string{"S3", "H8", "D8"}, nil)
+	if err != nil {
+		t.Fatalf("3 should have the same wildcard range as 2: %v", err)
+	}
+	if play.Target != "8" || play.Count != 3 {
+		t.Fatalf("want triple 8, got %#v", play)
 	}
 }
