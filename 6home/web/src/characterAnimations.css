@@ -1,0 +1,25 @@
+.player-character{overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none;mask-image:none}
+.player-character img{overflow:hidden;border:1px solid rgba(242,200,110,.62);border-radius:48% 48% 18px 18px;background:#062925;box-shadow:0 10px 24px rgba(0,0,0,.38);mask-image:linear-gradient(to bottom,#000 0,#000 82%,transparent 100%);transform-origin:50% 82%;will-change:transform,filter,opacity}
+.team-A .player-character,.team-B .player-character,.game-table .player-seat.current .player-character{border:0;filter:none}
+.team-A .player-character img{border-color:rgba(103,162,255,.72);filter:drop-shadow(0 0 7px rgba(74,141,255,.25))}
+.team-B .player-character img{border-color:rgba(255,156,98,.72);filter:drop-shadow(0 0 7px rgba(240,138,75,.25))}
+.game-table .player-seat.current .player-character img{border-color:var(--gold-light);filter:drop-shadow(0 0 10px rgba(217,164,65,.48))}
+.game-table .pos-1{--motion-x:0px;--motion-y:10px;--throw-x:0px;--throw-y:54px}
+.game-table .pos-2,.game-table .pos-3{--motion-x:-10px;--motion-y:0px;--throw-x:-62px;--throw-y:8px}
+.game-table .pos-4{--motion-x:0px;--motion-y:-10px;--throw-x:0px;--throw-y:-54px}
+.game-table .pos-5,.game-table .pos-6{--motion-x:10px;--motion-y:0px;--throw-x:62px;--throw-y:8px}
+.player-seat[data-motion="idle"] .motion-enabled img{animation:characterIdle 2.8s ease-in-out infinite}
+.player-seat[data-motion="play"] .motion-enabled img{animation:characterPlay .68s cubic-bezier(.22,.72,.25,1)}
+.player-seat[data-motion="pass"] .motion-enabled img{animation:characterPass .62s ease-in-out}
+.player-seat[data-motion="finished"] .player-character img{opacity:.38;filter:grayscale(.9);transform:scale(.94)}
+.character-action-card{position:absolute;z-index:5;left:50%;top:42%;width:20px;height:29px;border:1px solid #f2cf78;border-radius:3px;background:repeating-linear-gradient(45deg,#74291f 0 3px,#a84535 3px 6px);box-shadow:0 5px 10px rgba(0,0,0,.38);opacity:0;pointer-events:none}
+.player-seat[data-motion="play"] .motion-enabled .character-action-card{animation:characterThrowCard .72s cubic-bezier(.18,.72,.25,1)}
+.character-action-label{position:absolute;z-index:6;left:50%;top:-12px;translate:-50% 0;min-width:34px;padding:3px 7px;border:1px solid rgba(242,200,110,.55);border-radius:12px;background:rgba(3,31,28,.92);color:var(--gold-light);font-size:9px;font-style:normal;text-align:center;white-space:nowrap;opacity:0;pointer-events:none}
+.player-seat[data-motion="pass"] .motion-enabled .character-action-label,.player-seat[data-motion="play"] .motion-enabled .character-action-label{animation:characterLabel .9s ease-out}
+.player-seat[data-motion="finished"] .character-action-label{top:8px;opacity:1;color:#d5d9d7;border-color:rgba(255,255,255,.2)}
+@keyframes characterIdle{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.015)}}
+@keyframes characterPlay{0%,100%{transform:translate(0,0) scale(1)}44%{transform:translate(var(--motion-x),var(--motion-y)) scale(1.08)}}
+@keyframes characterPass{0%,100%{transform:translateX(0) rotate(0)}24%{transform:translateX(-4px) rotate(-3deg)}52%{transform:translateX(4px) rotate(3deg)}76%{transform:translateX(-2px) rotate(-1deg)}}
+@keyframes characterThrowCard{0%{opacity:0;transform:translate(-50%,-50%) scale(.42) rotate(-8deg)}18%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--throw-x)),calc(-50% + var(--throw-y))) scale(.86) rotate(18deg)}}
+@keyframes characterLabel{0%{opacity:0;transform:translateY(5px) scale(.9)}20%,70%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-4px) scale(.96)}}
+@media(prefers-reduced-motion:reduce){.motion-enabled img,.motion-enabled .character-action-card,.motion-enabled .character-action-label{animation:none!important}.motion-enabled .character-action-card{display:none}}

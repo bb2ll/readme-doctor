@@ -5,6 +5,7 @@ import { useGameSocket } from './useGameSocket'
 import { playTone, speakAction } from './audio'
 import { resolvePlayerMotion, type PlayerMotion } from './playerMotion'
 import './characters.css'
+import './characterAnimations.css'
 
 const SUITS: Record<string, string> = { S: '♠', H: '♥', C: '♣', D: '♦', J: '★' }
 const QUICK_CHATS = ['快点出牌', '打得漂亮', '我来压', '这手过', '稳住能赢']
@@ -28,13 +29,13 @@ function Countdown({ seconds, compact = false }: { seconds: number; compact?: bo
   return <div className={`countdown ${compact ? 'compact' : ''} ${left <= 5 ? 'urgent' : ''}`} aria-label={`剩余 ${left} 秒`}>{left}<small>s</small></div>
 }
 
-function PlayerSeat({ player, position, current, self, turnSeconds, motion, showCharacter = false }: { player?: Player; position: number; current: boolean; self: boolean; turnSeconds?: number; motion?: PlayerMotion; showCharacter?: boolean }) {
+function PlayerSeat({ player, position, current, self, turnSeconds, motion, showCharacter = false, animateCharacter = true }: { player?: Player; position: number; current: boolean; self: boolean; turnSeconds?: number; motion?: PlayerMotion; showCharacter?: boolean; animateCharacter?: boolean }) {
   if (!player) return <div className={`player-seat pos-${position} empty`}><span>空座位</span></div>
   const status = player.finished ? '已出完' : player.bot ? '机器人' : player.auto ? '托管' : player.connected ? '在线' : '掉线'
   const avatar = playerAvatar(player)
   const playerMotion = motion ?? resolvePlayerMotion(player)
   return <div className={`player-seat pos-${position} team-${player.team} ${current ? 'current' : ''} ${self ? 'self' : ''}`} data-motion={playerMotion.kind} data-motion-key={playerMotion.eventKey} data-player-seat={player.seat}>
-    {showCharacter ? <div className="player-character" aria-hidden="true"><img src={`./assets/characters/${avatar}.webp`} alt="" loading="lazy" draggable="false" /></div> : null}
+    {showCharacter ? <div className={`player-character ${animateCharacter ? 'motion-enabled' : 'motion-disabled'}`} aria-hidden="true" key={playerMotion.eventKey}><img src={`./assets/characters/${avatar}.webp`} alt="" loading="lazy" draggable="false" /><i className="character-action-card"/><em className="character-action-label">{playerMotion.kind === 'pass' ? '过' : playerMotion.kind === 'play' ? '出牌' : playerMotion.kind === 'finished' ? '已出完' : ''}</em></div> : null}
     {current ? <div className="turn-pulse" /> : null}
     <div className="avatar"><img src={`./assets/avatars/${avatar}.webp`} alt="" /></div>
     <div className="player-meta"><strong>{player.name}</strong><span>{player.seat}号位 · 队伍{player.team}</span></div>
@@ -113,7 +114,7 @@ function WaitingRoom({ room, self, send, leave }: any) {
   </main>
 }
 
-function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voice, setVoice }: any) {
+function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voice, setVoice, characterMotion, setCharacterMotion }: any) {
   const [selected, setSelected] = useState<string[]>([])
   const [chatOpen, setChatOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -185,7 +186,7 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
       </div></div>
         {[1,2,3,4,5,6].map(seat => {
           const player = players.find(p=>p.seat===seat)
-          return <PlayerSeat key={seat} player={player} position={seat} current={room.current===seat} self={self.seat===seat} turnSeconds={room.turnSeconds} motion={player ? resolvePlayerMotion(player, latestAction) : undefined} showCharacter />
+          return <PlayerSeat key={seat} player={player} position={seat} current={room.current===seat} self={self.seat===seat} turnSeconds={room.turnSeconds} motion={player ? resolvePlayerMotion(player, latestAction) : undefined} showCharacter animateCharacter={characterMotion} />
         })}
         <div className={`turn-banner ${myTurn ? 'my-turn' : ''}`}><Countdown seconds={room.turnSeconds}/><div><strong>{myTurn ? '轮到你出牌' : `等待 ${currentPlayer?.seat || room.current}号位出牌`}</strong><span>{myTurn ? (room.lastPlay ? `需要出 ${room.lastPlay.count} 张更大的牌` : '可自由选择牌型和数量') : `${currentPlayer?.name || '玩家'} 正在思考`}</span></div></div>
         <aside className="action-log"><strong>最近动作</strong>{actionLog.length ? actionLog.map((item:any, index:number)=><div className={`action-item ${index===0?'latest':''}`} key={`${item.at}-${item.seat}-${index}`}><span>{item.seat}号位：</span>{item.kind==='play'?<em>出 {formatCards(item.cards)}</em>:<em>过</em>}</div>) : <div className="action-empty">等待第一手出牌</div>}</aside>
@@ -196,6 +197,7 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
         <strong>声音与游戏设置</strong>
         <button onClick={toggleBgm}><span>背景音乐</span><em className={bgm?'on':''}>{bgm?'开':'关'}</em></button>
         <button onClick={()=>setVoice((value:boolean)=>!value)}><span>出牌语音</span><em className={voice?'on':''}>{voice?'开':'关'}</em></button>
+        <button onClick={()=>setCharacterMotion((value:boolean)=>!value)}><span>人物动画</span><em className={characterMotion?'on':''}>{characterMotion?'开':'关'}</em></button>
         <button onClick={()=>send({type:'toggle_auto'})}><span>自动托管</span><em className={self.auto?'on':''}>{self.auto?'开':'关'}</em></button>
       </div>:null}
       <audio ref={musicRef} src="./assets/audio/poker-storm.mp3" loop preload="metadata" />
@@ -219,14 +221,16 @@ export function App() {
   const [sound, setSound] = useState(()=>localStorage.getItem('zaliujia-sound')!=='off')
   const [bgm, setBgm] = useState(()=>localStorage.getItem('zaliujia-bgm')==='on')
   const [voice, setVoice] = useState(()=>localStorage.getItem('zaliujia-voice')!=='off')
+  const [characterMotion, setCharacterMotion] = useState(()=>localStorage.getItem('zaliujia-character-motion')!=='off')
   useEffect(()=>localStorage.setItem('zaliujia-sound',sound?'on':'off'),[sound])
   useEffect(()=>localStorage.setItem('zaliujia-bgm',bgm?'on':'off'),[bgm])
   useEffect(()=>localStorage.setItem('zaliujia-voice',voice?'on':'off'),[voice])
+  useEffect(()=>localStorage.setItem('zaliujia-character-motion',characterMotion?'on':'off'),[characterMotion])
   const leave = () => { if (game.room?.phase === 'playing') return; game.send({type:'leave_room'}); setTimeout(()=>{game.leaveLocal();location.reload()},120) }
   const content = useMemo(() => {
     if (!game.room || !game.self) return <Lobby connected={game.connected} error={game.error} send={game.send} clearError={()=>game.setError('')} />
     if (game.room.phase === 'waiting') return <WaitingRoom room={game.room} self={game.self} send={game.send} leave={leave} />
-    return <GameScreen room={game.room} self={game.self} send={game.send} leave={leave} sound={sound} setSound={setSound} bgm={bgm} setBgm={setBgm} voice={voice} setVoice={setVoice} />
-  }, [game.room, game.self, game.connected, game.error, game.send, sound, bgm, voice])
+    return <GameScreen room={game.room} self={game.self} send={game.send} leave={leave} sound={sound} setSound={setSound} bgm={bgm} setBgm={setBgm} voice={voice} setVoice={setVoice} characterMotion={characterMotion} setCharacterMotion={setCharacterMotion} />
+  }, [game.room, game.self, game.connected, game.error, game.send, sound, bgm, voice, characterMotion])
   return <>{content}{game.error && game.room ? <div className="global-error" onClick={()=>game.setError('')}>{game.error}</div>:null}</>
 }
