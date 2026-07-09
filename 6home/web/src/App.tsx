@@ -123,6 +123,7 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
   const [dealing, setDealing] = useState(false)
   const [dismissedResultKey, setDismissedResultKey] = useState('')
   const musicRef = useRef<HTMLAudioElement | null>(null)
+  const lastResultTone = useRef('')
   const initialAction = room.actionLog?.at(-1)
   const lastSpokenAction = useRef(initialAction ? `${initialAction.at}-${initialAction.seat}-${initialAction.kind}` : '')
   const players: Player[] = room.players
@@ -134,7 +135,11 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
   const myTurn = !room.result && room.current === self.seat
   const actionLog = (room.actionLog || []).slice(-6).reverse()
   useEffect(() => setSelected([]), [room.current, room.lastPlay?.seat, self.hand.length])
-  useEffect(() => { if (sound && room.result) playTone('win') }, [room.result, sound])
+  useEffect(() => {
+    if (!resultKey || lastResultTone.current === resultKey) return
+    lastResultTone.current = resultKey
+    if (sound) playTone('win')
+  }, [resultKey, sound])
   useEffect(() => {
     const dealKey = `zaliujia-deal-${room.code}-${room.round}`
     if (sessionStorage.getItem(dealKey)) return
@@ -215,12 +220,14 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
 }
 
 function ResultModal({ room, self, send, leave, onClose }: any) {
+  const [confirmingExit, setConfirmingExit] = useState(false)
   const won = room.result.kind === 'win' && room.result.winningTeam === self.team
   const players: Player[] = room.players
   const confirmed = players.filter(player => player.ready).length
   return <div className="modal-backdrop"><div className="result-modal" role="dialog" aria-modal="true" aria-label="本局结算"><button className="result-close" aria-label="关闭结算" onClick={onClose}>×</button><div className="result-emblem">{room.result.kind === 'draw' ? '和' : won ? '胜' : '负'}</div><span>第 {room.round} 局结束</span><h2>{room.result.title}</h2><p>{room.result.kind==='draw'?'大供队友未能全部出完，双方握手言和。':won?'配合漂亮，你的队伍率先全部出完。':'对方队伍率先全部出完。'}</p><div className="result-teams"><div className="team-a"><b>队伍A</b><span>{room.result.winningTeam==='A'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div><strong>VS</strong><div className="team-b"><b>队伍B</b><span>{room.result.winningTeam==='B'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div></div>
     <div className="rematch-status"><div className="rematch-title"><strong>下一局确认</strong><span>{confirmed}/6</span></div><div className="rematch-players">{players.map(player=><div className={`rematch-player ${player.ready?'confirmed':''}`} key={player.seat}><img src={`./assets/avatars/${playerAvatar(player)}.webp`} alt="" /><span>{player.name}</span><em>{player.ready?'已确认':'待确认'}</em></div>)}</div></div>
-    <div className="result-actions"><button className="button gold large" disabled={self.ready} onClick={()=>send({type:'rematch'})}>{self.ready?'等待其他玩家':'确认下一局'}</button><button className="button secondary large" onClick={onClose}>返回牌桌</button><button className="button result-leave large" onClick={leave}>退出房间</button></div><small>全部玩家确认后将自动开始下一局</small></div></div>
+    <div className="result-actions"><button className="button gold large" disabled={self.ready} onClick={()=>send({type:'rematch'})}>{self.ready?'等待其他玩家':'确认下一局'}</button><button className="button secondary large" onClick={onClose}>返回牌桌</button><button className="button result-leave large" onClick={()=>setConfirmingExit(true)}>退出房间</button></div><small>全部玩家确认后将自动开始下一局</small>
+    {confirmingExit ? <div className="result-exit-confirm" role="alertdialog" aria-modal="true" aria-label="确认退出房间"><div><strong>确定退出房间？</strong><p>退出后本局确认将取消，房间人数会立即更新。</p><span><button className="button secondary" onClick={()=>setConfirmingExit(false)}>取消</button><button className="button result-leave" onClick={leave}>确认退出</button></span></div></div>:null}</div></div>
 }
 
 export function App() {
