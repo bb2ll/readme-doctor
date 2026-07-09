@@ -138,6 +138,7 @@ func (s *Server) joinRoom(c *Client, code, name, token string) {
 			if p.Token == token {
 				p.Connected = true
 				p.conn = c
+				s.assignHostIfMissing(r, p)
 				c.roomCode = code
 				c.token = token
 				c.send(map[string]any{"type": "session", "roomCode": code, "token": token, "seat": p.Seat})
@@ -169,6 +170,7 @@ func (s *Server) joinRoom(c *Client, code, name, token string) {
 	token = randomToken()
 	p := &Player{Token: token, Name: name, Seat: seat, Team: teamFor(seat), Connected: true, conn: c}
 	r.Players[seat] = p
+	s.assignHostIfMissing(r, p)
 	c.roomCode = code
 	c.token = token
 	c.send(map[string]any{"type": "session", "roomCode": code, "token": token, "seat": seat})
@@ -577,10 +579,25 @@ func (s *Server) passInternal(r *Room, p *Player) {
 
 func (s *Server) rematchReset(r *Room) {
 	for _, p := range r.Players {
-		p.Ready = false
+		p.Hand = nil
+		p.Ready = p.Bot
+		p.Finished = false
+		p.Auto = p.Bot
+		p.Timeouts = 0
+		p.IsBigGong = false
+		p.FinishedAt = 0
 	}
 	r.Phase = "waiting"
 	r.Result = nil
+	r.Current = 0
+	r.LastPlay = nil
+	r.DisplayPlay = nil
+	r.LastPlayer = 0
+	r.Passed = map[int]bool{}
+	r.BigGongSeat = 0
+	r.FinishCounter = 0
+	r.TurnDeadline = time.Time{}
+	r.ActionLog = nil
 }
 
 func (s *Server) nextActive(r *Room, from int) int {
@@ -648,7 +665,7 @@ func (s *Server) disconnect(c *Client) {
 func (s *Server) transferHost(r *Room, old int) {
 	for i := 1; i <= 6; i++ {
 		seat := (old+i-1)%6 + 1
-		if p := r.Players[seat]; p != nil && p.Connected {
+		if p := r.Players[seat]; p != nil && p.Connected && !p.Bot {
 			for _, x := range r.Players {
 				x.IsHost = false
 			}
@@ -656,6 +673,24 @@ func (s *Server) transferHost(r *Room, old int) {
 			return
 		}
 	}
+	for _, p := range r.Players {
+		p.IsHost = false
+	}
+}
+
+func (s *Server) assignHostIfMissing(r *Room, candidate *Player) {
+	if candidate == nil || candidate.Bot || !candidate.Connected {
+		return
+	}
+	for _, p := range r.Players {
+		if p.IsHost && p.Connected && !p.Bot {
+			return
+		}
+	}
+	for _, p := range r.Players {
+		p.IsHost = false
+	}
+	candidate.IsHost = true
 }
 
 func (s *Server) broadcast(r *Room) {
