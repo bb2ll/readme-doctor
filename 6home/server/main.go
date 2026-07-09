@@ -487,17 +487,28 @@ func (s *Server) leaveRoom(c *Client) {
 	if p == nil {
 		return
 	}
-	if r.Phase != "waiting" {
+	if r.Phase == "playing" {
 		c.err("对局中请等待重连或开启托管")
 		return
 	}
+	if r.Phase != "waiting" && r.Phase != "finished" {
+		c.err("当前状态无法退出房间")
+		return
+	}
+	wasFinished := r.Phase == "finished"
 	delete(r.Players, p.Seat)
 	c.roomCode = ""
 	c.token = ""
 	if len(r.Players) == 0 {
 		delete(s.rooms, r.Code)
-	} else if p.IsHost {
-		s.transferHost(r, p.Seat)
+	} else {
+		if wasFinished {
+			r.Round++
+			s.rematchReset(r)
+		}
+		if p.IsHost {
+			s.transferHost(r, p.Seat)
+		}
 		s.broadcast(r)
 	}
 	s.persist()

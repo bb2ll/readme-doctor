@@ -17,4 +17,5 @@ export type ServerMessage =
   | { type: 'connected' }
   | { type: 'session'; roomCode: string; token: string; seat: number }
   | { type: 'state'; room: Room; self: Self }
+  | { type: 'left' }
   | { type: 'error'; message: string }

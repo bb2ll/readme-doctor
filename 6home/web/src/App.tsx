@@ -210,17 +210,17 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
       {room.chats?.length ? <div className="chat-toast"><strong>{room.chats.at(-1).name}</strong>：{room.chats.at(-1).text}</div>:null}
       {room.result && resultHidden ? <button className="result-reopen" onClick={()=>setDismissedResultKey('')}><strong>查看本局结算</strong><span>{confirmedPlayers}/{players.length} 已确认下一局</span></button>:null}
     </section>
-    {room.result && !resultHidden ? <ResultModal room={room} self={self} send={send} onClose={()=>setDismissedResultKey(resultKey)}/>:null}
+    {room.result && !resultHidden ? <ResultModal room={room} self={self} send={send} leave={leave} onClose={()=>setDismissedResultKey(resultKey)}/>:null}
   </main>
 }
 
-function ResultModal({ room, self, send, onClose }: any) {
+function ResultModal({ room, self, send, leave, onClose }: any) {
   const won = room.result.kind === 'win' && room.result.winningTeam === self.team
   const players: Player[] = room.players
   const confirmed = players.filter(player => player.ready).length
   return <div className="modal-backdrop"><div className="result-modal" role="dialog" aria-modal="true" aria-label="本局结算"><button className="result-close" aria-label="关闭结算" onClick={onClose}>×</button><div className="result-emblem">{room.result.kind === 'draw' ? '和' : won ? '胜' : '负'}</div><span>第 {room.round} 局结束</span><h2>{room.result.title}</h2><p>{room.result.kind==='draw'?'大供队友未能全部出完，双方握手言和。':won?'配合漂亮，你的队伍率先全部出完。':'对方队伍率先全部出完。'}</p><div className="result-teams"><div className="team-a"><b>队伍A</b><span>{room.result.winningTeam==='A'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div><strong>VS</strong><div className="team-b"><b>队伍B</b><span>{room.result.winningTeam==='B'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div></div>
     <div className="rematch-status"><div className="rematch-title"><strong>下一局确认</strong><span>{confirmed}/6</span></div><div className="rematch-players">{players.map(player=><div className={`rematch-player ${player.ready?'confirmed':''}`} key={player.seat}><img src={`./assets/avatars/${playerAvatar(player)}.webp`} alt="" /><span>{player.name}</span><em>{player.ready?'已确认':'待确认'}</em></div>)}</div></div>
-    <div className="result-actions"><button className="button gold large" disabled={self.ready} onClick={()=>send({type:'rematch'})}>{self.ready?'等待其他玩家':'确认下一局'}</button><button className="button secondary large" onClick={onClose}>返回牌桌</button></div><small>全部玩家确认后将自动开始下一局</small></div></div>
+    <div className="result-actions"><button className="button gold large" disabled={self.ready} onClick={()=>send({type:'rematch'})}>{self.ready?'等待其他玩家':'确认下一局'}</button><button className="button secondary large" onClick={onClose}>返回牌桌</button><button className="button result-leave large" onClick={leave}>退出房间</button></div><small>全部玩家确认后将自动开始下一局</small></div></div>
 }
 
 export function App() {
@@ -233,7 +233,7 @@ export function App() {
   useEffect(()=>localStorage.setItem('zaliujia-bgm',bgm?'on':'off'),[bgm])
   useEffect(()=>localStorage.setItem('zaliujia-voice',voice?'on':'off'),[voice])
   useEffect(()=>localStorage.setItem('zaliujia-character-motion',characterMotion?'on':'off'),[characterMotion])
-  const leave = () => { if (game.room?.phase === 'playing') return; game.send({type:'leave_room'}); setTimeout(()=>{game.leaveLocal();location.reload()},120) }
+  const leave = () => { if (game.room?.phase === 'playing') return; game.send({type:'leave_room'}) }
   const content = useMemo(() => {
     if (!game.room || !game.self) return <Lobby connected={game.connected} error={game.error} send={game.send} clearError={()=>game.setError('')} />
     if (game.room.phase === 'waiting') return <WaitingRoom room={game.room} self={game.self} send={game.send} leave={leave} />

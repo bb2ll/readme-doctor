@@ -49,6 +49,9 @@ export function useGameSocket() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ roomCode: msg.roomCode, token: msg.token }))
         } else if (msg.type === 'state') {
           setRoom(msg.room); setSelf(msg.self); setError('')
+        } else if (msg.type === 'left') {
+          localStorage.removeItem(STORAGE_KEY)
+          setRoom(null); setSelf(null); setError('')
         } else if (msg.type === 'error') {
           setError(msg.message)
           if (msg.message.includes('房间不存在') || msg.message.includes('身份已失效')) localStorage.removeItem(STORAGE_KEY)
@@ -67,11 +70,5 @@ export function useGameSocket() {
     }
   }, [])
 
-  const leaveLocal = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
-    setRoom(null); setSelf(null)
-    socket.current?.close()
-  }, [])
-
-  return { room, self, connected, error, setError, send, leaveLocal }
+  return { room, self, connected, error, setError, send }
 }
