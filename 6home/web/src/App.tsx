@@ -4,6 +4,7 @@ import type { Card, Player } from './types'
 import { useGameSocket } from './useGameSocket'
 import { playTone, speakAction } from './audio'
 import { resolvePlayerMotion, type PlayerMotion } from './playerMotion'
+import { toTablePosition } from './seatPerspective'
 import './characters.css'
 import './characterAnimations.css'
 
@@ -34,7 +35,7 @@ function PlayerSeat({ player, position, current, self, turnSeconds, motion, show
   const status = player.finished ? '已出完' : player.bot ? '机器人' : player.auto ? '托管' : player.connected ? '在线' : '掉线'
   const avatar = playerAvatar(player)
   const playerMotion = motion ?? resolvePlayerMotion(player)
-  return <div className={`player-seat pos-${position} team-${player.team} ${current ? 'current' : ''} ${self ? 'self' : ''}`} data-motion={playerMotion.kind} data-motion-key={playerMotion.eventKey} data-player-seat={player.seat}>
+  return <div className={`player-seat pos-${position} team-${player.team} ${current ? 'current' : ''} ${self ? 'self' : ''}`} data-motion={playerMotion.kind} data-motion-key={playerMotion.eventKey} data-player-seat={player.seat} data-table-position={position}>
     {showCharacter ? <div className={`player-character ${animateCharacter ? 'motion-enabled' : 'motion-disabled'}`} aria-hidden="true" key={playerMotion.eventKey}><img src={`./assets/characters/${avatar}.webp`} alt="" loading="lazy" draggable="false" /><i className="character-action-card"/><em className="character-action-label">{playerMotion.kind === 'pass' ? '过' : playerMotion.kind === 'play' ? '出牌' : playerMotion.kind === 'finished' ? '已出完' : ''}</em></div> : null}
     {current ? <div className="turn-pulse" /> : null}
     <div className="avatar"><img src={`./assets/avatars/${avatar}.webp`} alt="" /></div>
@@ -186,7 +187,7 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
       </div></div>
         {[1,2,3,4,5,6].map(seat => {
           const player = players.find(p=>p.seat===seat)
-          return <PlayerSeat key={seat} player={player} position={seat} current={room.current===seat} self={self.seat===seat} turnSeconds={room.turnSeconds} motion={player ? resolvePlayerMotion(player, latestAction) : undefined} showCharacter animateCharacter={characterMotion} />
+          return <PlayerSeat key={seat} player={player} position={toTablePosition(seat, self.seat)} current={room.current===seat} self={self.seat===seat} turnSeconds={room.turnSeconds} motion={player ? resolvePlayerMotion(player, latestAction) : undefined} showCharacter animateCharacter={characterMotion} />
         })}
         <div className={`turn-banner ${myTurn ? 'my-turn' : ''}`}><Countdown seconds={room.turnSeconds}/><div><strong>{myTurn ? '轮到你出牌' : `等待 ${currentPlayer?.seat || room.current}号位出牌`}</strong><span>{myTurn ? (room.lastPlay ? `需要出 ${room.lastPlay.count} 张更大的牌` : '可自由选择牌型和数量') : `${currentPlayer?.name || '玩家'} 正在思考`}</span></div></div>
         <aside className="action-log"><strong>最近动作</strong>{actionLog.length ? actionLog.map((item:any, index:number)=><div className={`action-item ${index===0?'latest':''}`} key={`${item.at}-${item.seat}-${index}`}><span>{item.seat}号位：</span>{item.kind==='play'?<em>出 {formatCards(item.cards)}</em>:<em>过</em>}</div>) : <div className="action-empty">等待第一手出牌</div>}</aside>
