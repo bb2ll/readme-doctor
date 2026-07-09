@@ -7,6 +7,7 @@ import { resolvePlayerMotion, type PlayerMotion } from './playerMotion'
 import { toTablePosition } from './seatPerspective'
 import './characters.css'
 import './characterAnimations.css'
+import './resultControls.css'
 
 const SUITS: Record<string, string> = { S: '♠', H: '♥', C: '♣', D: '♦', J: '★' }
 const QUICK_CHATS = ['快点出牌', '打得漂亮', '我来压', '这手过', '稳住能赢']
@@ -120,13 +121,17 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
   const [chatOpen, setChatOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [dealing, setDealing] = useState(false)
+  const [dismissedResultKey, setDismissedResultKey] = useState('')
   const musicRef = useRef<HTMLAudioElement | null>(null)
   const initialAction = room.actionLog?.at(-1)
   const lastSpokenAction = useRef(initialAction ? `${initialAction.at}-${initialAction.seat}-${initialAction.kind}` : '')
   const players: Player[] = room.players
   const currentPlayer = players.find(p=>p.seat===room.current)
   const latestAction = room.actionLog?.at(-1)
-  const myTurn = room.current === self.seat
+  const resultKey = room.result ? `${room.round}-${room.result.kind}-${room.result.winningTeam || 'draw'}` : ''
+  const resultHidden = Boolean(room.result && dismissedResultKey === resultKey)
+  const confirmedPlayers = players.filter(player=>player.ready).length
+  const myTurn = !room.result && room.current === self.seat
   const actionLog = (room.actionLog || []).slice(-6).reverse()
   useEffect(() => setSelected([]), [room.current, room.lastPlay?.seat, self.hand.length])
   useEffect(() => { if (sound && room.result) playTone('win') }, [room.result, sound])
@@ -187,9 +192,9 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
       </div></div>
         {[1,2,3,4,5,6].map(seat => {
           const player = players.find(p=>p.seat===seat)
-          return <PlayerSeat key={seat} player={player} position={toTablePosition(seat, self.seat)} current={room.current===seat} self={self.seat===seat} turnSeconds={room.turnSeconds} motion={player ? resolvePlayerMotion(player, latestAction) : undefined} showCharacter animateCharacter={characterMotion} />
+          return <PlayerSeat key={seat} player={player} position={toTablePosition(seat, self.seat)} current={!room.result&&room.current===seat} self={self.seat===seat} turnSeconds={room.turnSeconds} motion={player ? resolvePlayerMotion(player, latestAction) : undefined} showCharacter animateCharacter={characterMotion} />
         })}
-        <div className={`turn-banner ${myTurn ? 'my-turn' : ''}`}><Countdown seconds={room.turnSeconds}/><div><strong>{myTurn ? '轮到你出牌' : `等待 ${currentPlayer?.seat || room.current}号位出牌`}</strong><span>{myTurn ? (room.lastPlay ? `需要出 ${room.lastPlay.count} 张更大的牌` : '可自由选择牌型和数量') : `${currentPlayer?.name || '玩家'} 正在思考`}</span></div></div>
+        {!room.result ? <div className={`turn-banner ${myTurn ? 'my-turn' : ''}`}><Countdown seconds={room.turnSeconds}/><div><strong>{myTurn ? '轮到你出牌' : `等待 ${currentPlayer?.seat || room.current}号位出牌`}</strong><span>{myTurn ? (room.lastPlay ? `需要出 ${room.lastPlay.count} 张更大的牌` : '可自由选择牌型和数量') : `${currentPlayer?.name || '玩家'} 正在思考`}</span></div></div> : null}
         <aside className="action-log"><strong>最近动作</strong>{actionLog.length ? actionLog.map((item:any, index:number)=><div className={`action-item ${index===0?'latest':''}`} key={`${item.at}-${item.seat}-${index}`}><span>{item.seat}号位：</span>{item.kind==='play'?<em>出 {formatCards(item.cards)}</em>:<em>过</em>}</div>) : <div className="action-empty">等待第一手出牌</div>}</aside>
       </div>
       <div className="hand-area"><div className="hand">{self.hand.map((card:Card)=><CardView key={card.id} card={card} selected={selected.includes(card.id)} onClick={()=>toggle(card.id)} />)}</div><div className="play-actions"><button className="button gold" disabled={!myTurn||selected.length===0} onClick={play}>出牌</button><button className="button secondary" disabled={!myTurn||!room.lastPlay} onClick={pass}>过</button></div><div className="self-label"><span className={`team-dot team-${self.team.toLowerCase()}`}/>{players.find(p=>p.seat===self.seat)?.name} · {self.seat}号位 {self.auto ? '· 托管中' : ''}</div></div>
@@ -203,18 +208,19 @@ function GameScreen({ room, self, send, leave, sound, setSound, bgm, setBgm, voi
       </div>:null}
       <audio ref={musicRef} src="./assets/audio/poker-storm.mp3" loop preload="metadata" />
       {room.chats?.length ? <div className="chat-toast"><strong>{room.chats.at(-1).name}</strong>：{room.chats.at(-1).text}</div>:null}
+      {room.result && resultHidden ? <button className="result-reopen" onClick={()=>setDismissedResultKey('')}><strong>查看本局结算</strong><span>{confirmedPlayers}/{players.length} 已确认下一局</span></button>:null}
     </section>
-    {room.result ? <ResultModal room={room} self={self} send={send}/>:null}
+    {room.result && !resultHidden ? <ResultModal room={room} self={self} send={send} onClose={()=>setDismissedResultKey(resultKey)}/>:null}
   </main>
 }
 
-function ResultModal({ room, self, send }: any) {
+function ResultModal({ room, self, send, onClose }: any) {
   const won = room.result.kind === 'win' && room.result.winningTeam === self.team
   const players: Player[] = room.players
   const confirmed = players.filter(player => player.ready).length
-  return <div className="modal-backdrop"><div className="result-modal"><div className="result-emblem">{room.result.kind === 'draw' ? '和' : won ? '胜' : '负'}</div><span>第 {room.round} 局结束</span><h2>{room.result.title}</h2><p>{room.result.kind==='draw'?'大供队友未能全部出完，双方握手言和。':won?'配合漂亮，你的队伍率先全部出完。':'对方队伍率先全部出完。'}</p><div className="result-teams"><div className="team-a"><b>队伍A</b><span>{room.result.winningTeam==='A'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div><strong>VS</strong><div className="team-b"><b>队伍B</b><span>{room.result.winningTeam==='B'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div></div>
+  return <div className="modal-backdrop"><div className="result-modal" role="dialog" aria-modal="true" aria-label="本局结算"><button className="result-close" aria-label="关闭结算" onClick={onClose}>×</button><div className="result-emblem">{room.result.kind === 'draw' ? '和' : won ? '胜' : '负'}</div><span>第 {room.round} 局结束</span><h2>{room.result.title}</h2><p>{room.result.kind==='draw'?'大供队友未能全部出完，双方握手言和。':won?'配合漂亮，你的队伍率先全部出完。':'对方队伍率先全部出完。'}</p><div className="result-teams"><div className="team-a"><b>队伍A</b><span>{room.result.winningTeam==='A'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div><strong>VS</strong><div className="team-b"><b>队伍B</b><span>{room.result.winningTeam==='B'?'获胜':room.result.kind==='draw'?'平局':'落败'}</span></div></div>
     <div className="rematch-status"><div className="rematch-title"><strong>下一局确认</strong><span>{confirmed}/6</span></div><div className="rematch-players">{players.map(player=><div className={`rematch-player ${player.ready?'confirmed':''}`} key={player.seat}><img src={`./assets/avatars/${playerAvatar(player)}.webp`} alt="" /><span>{player.name}</span><em>{player.ready?'已确认':'待确认'}</em></div>)}</div></div>
-    <button className="button gold large" disabled={self.ready} onClick={()=>send({type:'rematch'})}>{self.ready?'等待其他玩家':'确认下一局'}</button><small>全部玩家确认后将自动开始下一局</small></div></div>
+    <div className="result-actions"><button className="button gold large" disabled={self.ready} onClick={()=>send({type:'rematch'})}>{self.ready?'等待其他玩家':'确认下一局'}</button><button className="button secondary large" onClick={onClose}>返回牌桌</button></div><small>全部玩家确认后将自动开始下一局</small></div></div>
 }
 
 export function App() {
