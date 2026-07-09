@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -32,7 +33,19 @@ type Client struct {
 	mu       sync.Mutex
 }
 
-var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }, ReadBufferSize: 2048, WriteBufferSize: 2048}
+var upgrader = websocket.Upgrader{CheckOrigin: sameOrigin, ReadBufferSize: 2048, WriteBufferSize: 2048}
+
+func sameOrigin(r *http.Request) bool {
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin == "" {
+		return true
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return false
+	}
+	return strings.EqualFold(parsed.Host, r.Host)
+}
 
 func main() {
 	dataDir := env("DATA_DIR", "./data")
@@ -777,11 +790,11 @@ func (s *Server) loadRooms() {
 	for _, r := range s.rooms {
 		r.timer = nil
 		for _, p := range r.Players {
-			p.Connected = false
+			p.Connected = p.Bot
 			p.conn = nil
 		}
 		if r.Phase == "playing" {
-			r.TurnDeadline = time.Now().Add(s.turnDuration)
+			s.schedule(r)
 		}
 	}
 }

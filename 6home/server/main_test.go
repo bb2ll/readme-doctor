@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -79,5 +83,73 @@ func TestAssignHostIfMissing(t *testing.T) {
 	server.assignHostIfMissing(room, reconnectedHuman)
 	if disconnectedHost.IsHost || !reconnectedHuman.IsHost {
 		t.Fatal("disconnected host should not block a connected human from taking over")
+	}
+}
+
+func TestLoadRoomsRestoresBotsAndPlayingTimer(t *testing.T) {
+	dataDir := t.TempDir()
+	room := &Room{
+		Code:    "123456",
+		Phase:   "playing",
+		Current: 1,
+		Players: map[int]*Player{
+			1: {Seat: 1, Connected: true},
+			2: {Seat: 2, Connected: false, Bot: true},
+		},
+	}
+	data, err := json.Marshal(map[string]*Room{room.Code: room})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dataDir, "rooms.json"), data, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	server := &Server{rooms: map[string]*Room{}, dataDir: dataDir, turnDuration: time.Minute}
+	server.loadRooms()
+	loaded := server.rooms[room.Code]
+	if loaded == nil {
+		t.Fatal("room was not restored")
+	}
+	defer loaded.timer.Stop()
+
+	if loaded.Players[1].Connected {
+		t.Fatal("human players must require reconnect after restart")
+	}
+	if !loaded.Players[2].Connected {
+		t.Fatal("bots should remain available after restart")
+	}
+	if loaded.timer == nil || loaded.TurnDeadline.Before(time.Now()) {
+		t.Fatal("playing room timer was not restored")
+	}
+}
+
+func TestSameOrigin(t *testing.T) {
+	request := httptest.NewRequest("GET", "http://game.example/ws", nil)
+	request.Host = "game.example"
+	if !sameOrigin(request) {
+		t.Fatal("requests without an Origin header should be allowed")
+	}
+
+	request.Header.Set("Origin", "https://game.example")
+	if !sameOrigin(request) {
+		t.Fatal("matching browser origin should be allowed")
+	}
+
+	request.Host = "game.example:4288"
+	request.Header.Set("Origin", "http://game.example:4288")
+	if !sameOrigin(request) {
+		t.Fatal("matching local origin with port should be allowed")
+	}
+
+	request.Host = "game.example"
+	request.Header.Set("Origin", "https://evil.example")
+	if sameOrigin(request) {
+		t.Fatal("cross-origin websocket request should be rejected")
+	}
+
+	request.Header.Set("Origin", "not a valid origin")
+	if sameOrigin(request) {
+		t.Fatal("malformed origin should be rejected")
 	}
 }
